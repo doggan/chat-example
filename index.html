@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>Socket.IO chat</title>
+    <title>Socket.IO - Chat Example</title>
     <style>
         * {
             margin: 0;
@@ -36,10 +36,44 @@
             padding: 10px;
         }
 
+        #wrapper {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            border: 1px solid #333;
+        }
+
+        #upper_panel {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 40px;
+        }
+
+        #chat_content {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+            overflow: auto;
+        }
+
+        #lower_panel {
+            height: 40px;
+            position: absolute;
+            bottom: 0px;
+            left: 0px;
+            right: 0px;
+        }
+
         #messages {
             list-style-type: none;
             margin: 0;
             padding: 0;
+            overflow: auto;
         }
 
         #messages li {
@@ -53,23 +87,36 @@
 </head>
 
 <body>
-    <ul id="messages"></ul>
-    <form action="">
-        <input id="m" autocomplete="off" />
-        <button>Send</button>
-    </form>
-    <script src="https://cdn.socket.io/socket.io-1.2.0.js"></script>
-    <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/3.10.0/lodash.js"></script>
+    <div id="wrapper">
+        <div id="upper_panel">
+            <div id="chat_content">
+                <ul id="messages"></ul>
+            </div>
+        </div>
+        <div id="lower_panel">
+            <form action="">
+                <input id="m" autocomplete="off" />
+                <button>Send</button>
+            </form>
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.2.0/socket.io.min.js"></script>
+    <script src="https://code.jquery.com/jquery-1.11.3.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/3.10.0/lodash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/randomcolor/0.3.2/randomColor.min.js"></script>
     <script>
         var socket = io();
 
-        function appendChat(msg, nickname) {
+        function appendChat(msg, nickname, color) {
             // Sanitize user input.
             msg = _.escape(msg);
 
             if (nickname) {
-                msg = '[<b>' + nickname + '</b>]: ' + msg;
+                var style = '';
+                if (color) {
+                    style = ' style="color:' + color + '"; ';
+                }
+                msg = '[<b ' + style + '>' + nickname + '</b>]: ' + msg;
             }
             $('#messages').append($('<li>').html(msg));
         }
@@ -83,6 +130,7 @@
             socketId: null,
             nickname: 'anonymous'
         };
+        var userInfos = [];
 
         socket.on('connect', function() {
             appendChat('Connected to chat server.');
@@ -95,12 +143,20 @@
         socket.on('disconnect', function() {
             appendChat('Disconnected from chat server.');
             userInfo.socketId = null;
+            userInfos = [];
         });
         socket.on('client_connected', function(data) {
             appendChat('User connected: ' + data.socketId);
+            userInfos.push({
+                socketId: data.socketId,
+                color: randomColor() // Generate a random color for this client's chat msgs.
+            })
         });
         socket.on('client_disconnected', function(data) {
             appendChat('User disconnected: ' + data.socketId);
+            _.remove(userInfos, function(info) {
+                return info.socketId === data.socketId;
+            });
         });
 
         /**
@@ -118,7 +174,17 @@
          */
         var rpcMap = {
             chat_message: function(payload) {
-                appendChat(payload.msg, payload.name);
+                var color = 'black';
+
+                // Get the color for this client.
+                var client = _.find(userInfos, function(info) {
+                    return info.socketId === payload.socketId;
+                });
+                if (client) {
+                    color = client.color;
+                }
+
+                appendChat(payload.msg, payload.name, color);
             },
             change_nickname: function(payload) {
                 var msg = '[' + payload.from + '] changed nickname to [' + payload.to + ']';
@@ -130,6 +196,7 @@
             socket.emit('broadcast', {
                 rpc: 'chat_message',
                 payload: {
+                    socketId: userInfo.socketId,
                     name: userInfo.nickname,
                     msg: msg
                 }
