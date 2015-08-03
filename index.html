@@ -119,6 +119,11 @@
                 msg = '[<b ' + style + '>' + nickname + '</b>]: ' + msg;
             }
             $('#messages').append($('<li>').html(msg));
+
+            // Smooth scroll to most recent chat message.
+            $('#chat_content').animate({
+                scrollTop: $('#chat_content')[0].scrollHeight
+            }, 100);
         }
 
         $(document).ready(function() {
