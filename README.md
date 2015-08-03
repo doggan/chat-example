@@ -1,7 +1,12 @@
 # chat-example
 
-This is the source code for a very simple chat example used for 
-the [Getting Started](http://socket.io/get-started/chat/) guide 
-of the Socket.IO website.
+A simple chatroom using socket.io. Based off the [Getting Started](http://socket.io/get-started/chat/) guide, with some added functionality.
 
-Please refer to it to learn how to run this application.
+## Usage
+1. Clone the repository.
+ * `git clone git://github.com/doggan/chat-example`
+1. Start the servers (by default, `localhost:3000` is the file server and `localhost:8080` is the socket.io event server).
+ * `cd chat-example`
+ * `npm start`
+1. Open multiple web browser tabs and start chatting!
+ * `http://localhost:3000`
